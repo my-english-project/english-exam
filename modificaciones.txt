@@ -1,0 +1,8 @@
+-----------------------------------------------
+Modificación 1 (08-05-2026)
+-----------------------------------------------
+- En el login de usuario, pedir nombre completo iniciando por el nombre, pedir el correo y verificarlo a fin de cerciorarse de que esté correcto y se pueda enviar el correo, eliminar el campo de Student ID.
+- Revisar, indistintamente al enviar el examen marca que uno o más preguntas están sin contestar, lo cual no es cierto, esto pasa probablemente por el hecho de existir más preguntas y solo se seleccionan determinadas por alumno a fin de que los exámenes sean distintos. Corregir esto.
+- Eliminar el botón de Teacher panel durante el examen, solo mostrarlo en el login. Poner este botón bajo el mensaje de la pantalla login de manera discreta.
+- No uses los alerts por default de Javascript, utiliza algún plugin estilizado.
+- Indicar el valor en puntos por cada reactivo para que el alumno tenga conocimiento del valor de cada uno.
