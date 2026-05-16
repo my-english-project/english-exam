@@ -13,7 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
     onload="window._emailjsReady=true;try{emailjs.init(window.EMAILJS_PUBLIC_KEY||'');}catch(e){}"
     onerror="console.warn('EmailJS CDN failed – email sending disabled')"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.42.0/dist/umd/supabase.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
 
@@ -467,6 +467,12 @@
       padding: 1.4rem;
       margin-bottom: .9rem;
       transition: border-color .2s
+    }
+
+    .q-card.missing-highlight {
+      border-color: var(--red);
+      box-shadow: 0 0 0 4px var(--red-light);
+      background: var(--red-light);
     }
 
     .q-card:focus-within {
@@ -1784,12 +1790,12 @@
     /* ── SUPABASE CONFIG ── */
     const SUPABASE_URL = 'https://veywxpmdgqlwuusrjgnd.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_rzDUAsEgZ3B8XFYpeZxIJQ_GscKJhF-';
-    let supabase = null;
+    window._sb = null;
     try {
-      if (typeof supabase === 'undefined' || !supabase) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      if (window.supabase && window.supabase.createClient) {
+        window._sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       }
-    } catch (e) { console.warn('Supabase initialization failed:', e); }
+    } catch (e) { console.error('Supabase init error:', e); }
 
     // EmailJS init — safe, won't throw if CDN failed
     window.EMAILJS_PUBLIC_KEY = EMAILJS_PUBLIC_KEY;
@@ -1989,7 +1995,7 @@
     }
 
     async function syncSubmissionToSupabase(sub) {
-      if (!supabase) return;
+      if (!window._sb) return;
       try {
         const payload = {
           student_name: sub.name,
@@ -2005,17 +2011,15 @@
         };
 
         if (sub.db_id) {
-          // Update existing
-          await supabase.from('english_exam_submissions').update(payload).eq('id', sub.db_id);
+          await window._sb.from('english_exam_submissions').update(payload).eq('id', sub.db_id);
         } else {
-          // Insert new
-          const { data, error } = await supabase.from('english_exam_submissions').insert(payload).select();
+          const { data, error } = await window._sb.from('english_exam_submissions').insert(payload).select();
           if (error) throw error;
-          if (data && data[0]) sub.db_id = data[0].id; // store the UUID
-          saveSubmissions(); // update localStorage with the db_id
+          if (data && data[0]) sub.db_id = data[0].id;
+          saveSubmissions();
         }
       } catch (e) {
-        console.error('Error syncing to Supabase:', e);
+        console.error('Sync error:', e);
       }
     }
 
@@ -2222,7 +2226,7 @@
     }
 
     function renderQ(q, num, nested = false, points = null) {
-      const wrap1 = nested ? `<div class="q-card" style="border:none;padding:.4rem 0;margin-bottom:.65rem;">` : `<div class="q-card">`;
+      const wrap1 = nested ? `<div class="q-card" id="card-${q.id}" style="border:none;padding:.4rem 0;margin-bottom:.65rem;">` : `<div class="q-card" id="card-${q.id}">`;
       let pointsDisplay = '';
       if (points !== null) {
         pointsDisplay = ` <span style="color:var(--green);font-size:.75rem;font-weight:500">(${points} ${points === 1 ? 'pt' : 'pts'})</span>`;
@@ -2276,8 +2280,14 @@
       allQs.forEach(q => {
         total++;
         const a = answers[q.id]; const el = document.getElementById(`ans-${q.id}`);
-        if (a !== undefined && a !== '') filled++;
-        else if (el && el.value.trim().length > 0) filled++;
+        const card = document.getElementById(`card-${q.id}`);
+        if (a !== undefined && a !== '') {
+          filled++;
+          if (card) card.classList.remove('missing-highlight');
+        } else if (el && el.value.trim().length > 0) {
+          filled++;
+          if (card) card.classList.remove('missing-highlight');
+        }
       });
       document.getElementById('prog-fill').style.width = Math.round(filled / total * 100) + '%';
     }
@@ -2292,15 +2302,29 @@
     async function submitExam() {
       collectAnswers();
       const allQs = [...selQ.grammar, ...selQ.listening.questions, ...selQ.reading[0].questions, ...selQ.writing];
+      
+      // Clear previous highlights
+      document.querySelectorAll('.q-card').forEach(c => c.classList.remove('missing-highlight'));
+      
       const missing = allQs.filter(q => answers[q.id] === undefined || answers[q.id] === '');
       if (missing.length > 0) {
+        missing.forEach(q => {
+          const card = document.getElementById('card-' + q.id);
+          if (card) card.classList.add('missing-highlight');
+        });
+        
         let proceed = false;
         try {
           proceed = await showModal('Unanswered Questions', `${missing.length} question(s) unanswered. Submit anyway?`, 'confirm');
         } catch (e) {
           proceed = window.confirm(`${missing.length} question(s) unanswered. Submit anyway?`);
         }
-        if (!proceed) return;
+        if (!proceed) {
+          // Scroll to the first missing question
+          const firstMissing = document.getElementById('card-' + missing[0].id);
+          if (firstMissing) firstMissing.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
       }
       const partial = autoGrade();
       const submission = {
@@ -2323,8 +2347,7 @@
       submissions.push(submission);
       saveSubmissions();
       
-      // Save to Supabase immediately
-      if (supabase) {
+      if (window._sb) {
         await syncSubmissionToSupabase(submission);
       }
 
@@ -2390,7 +2413,7 @@
       const allQs = [...selQ.grammar, ...selQ.listening.questions, ...selQ.reading[0].questions, ...selQ.writing];
       let dhtml = '';
       allQs.forEach((q, i) => {
-        const a = sub.answers[q.id] || '(no answer)';
+        const a = (sub.answers[q.id] !== undefined && sub.answers[q.id] !== '') ? sub.answers[q.id] : '(no answer)';
         const disp = q.type === 'mcq' && q.opts && a !== '(no answer)' ? q.opts[a] : a;
         dhtml += `<div class="ans-row"><div class="aq">Q${i + 1} — ${q.type === 'mcq' ? 'Multiple choice' : q.type === 'fill' ? 'Fill-in' : 'Written'}</div><div>${esc(String(disp))}</div></div>`;
       });
@@ -2422,19 +2445,18 @@
       const body = document.getElementById('panel-body');
       body.innerHTML = `<div class="no-students">Loading submissions from database...</div>`;
 
-      if (supabase) {
+      if (window._sb) {
         try {
-          const { data, error } = await supabase
+          const { data, error } = await window._sb
             .from('english_exam_submissions')
             .select('*')
             .order('created_at', { ascending: false });
           
           if (error) throw error;
           
-          // Map DB records back to the local format
           submissions = data.map(dbSub => ({
             db_id: dbSub.id,
-            id: dbSub.id, // using UUID as local id too
+            id: dbSub.id,
             name: dbSub.student_name,
             email: dbSub.student_email,
             date: dbSub.exam_date,
@@ -2445,10 +2467,9 @@
             graded: dbSub.graded,
             emailSent: dbSub.email_sent
           }));
-          saveSubmissions(); // Update local cache
+          saveSubmissions();
         } catch (e) {
-          console.error('Could not load from Supabase:', e);
-          // fallback to localStorage if DB fails
+          console.error('Load error:', e);
           try { submissions = JSON.parse(localStorage.getItem('exam_submissions') || '[]'); } catch (err) {}
         }
       } else {
@@ -2545,7 +2566,8 @@
         if (q.type === 'short' || q.type === 'fill') {
           hasOpen = true;
           const curScore = sub.scores['_q_' + q.id] ?? '';
-          html += gradeItem(q, 'Grammar', sub.answers[q.id] || '(no answer)', q.id, 5, curScore, q.ans !== 'open' ? 'Expected: ' + q.ans : '');
+          const studentAns = (sub.answers[q.id] !== undefined && sub.answers[q.id] !== '') ? sub.answers[q.id] : '(no answer)';
+          html += gradeItem(q, 'Grammar', studentAns, q.id, 5, curScore, q.ans !== 'open' ? 'Expected: ' + q.ans : '');
         }
       });
 
@@ -2555,7 +2577,8 @@
         if (q.type === 'short') {
           hasOpen = true;
           const curScore = sub.scores['_q_' + q.id] ?? '';
-          html += gradeItem(q, 'Listening', sub.answers[q.id] || '(no answer)', q.id, LIS_PTS_T[idx] ?? 3, curScore, '');
+          const studentAns = (sub.answers[q.id] !== undefined && sub.answers[q.id] !== '') ? sub.answers[q.id] : '(no answer)';
+          html += gradeItem(q, 'Listening', studentAns, q.id, LIS_PTS_T[idx] ?? 3, curScore, '');
         }
       });
 
@@ -2565,7 +2588,8 @@
         if (q.type === 'short') {
           hasOpen = true;
           const curScore = sub.scores['_q_' + q.id] ?? '';
-          html += gradeItem(q, 'Reading', sub.answers[q.id] || '(no answer)', q.id, READ_PTS_T[idx] ?? 3, curScore, '');
+          const studentAns = (sub.answers[q.id] !== undefined && sub.answers[q.id] !== '') ? sub.answers[q.id] : '(no answer)';
+          html += gradeItem(q, 'Reading', studentAns, q.id, READ_PTS_T[idx] ?? 3, curScore, '');
         }
       });
 
@@ -2573,7 +2597,8 @@
       writingQs.forEach(q => {
         hasOpen = true;
         const curScore = sub.scores['_q_' + q.id] ?? '';
-        html += gradeItem(q, 'Writing', sub.answers[q.id] || '(no answer)', q.id, 10, curScore, '');
+        const studentAns = (sub.answers[q.id] !== undefined && sub.answers[q.id] !== '') ? sub.answers[q.id] : '(no answer)';
+        html += gradeItem(q, 'Writing', studentAns, q.id, 10, curScore, '');
       });
 
       if (!hasOpen) html += `<p style="color:var(--muted);font-size:.88rem">All questions were auto-graded.</p>`;
@@ -2672,8 +2697,7 @@
       sub.graded = true;
       saveSubmissions();
       
-      // Sync update to Supabase
-      if (supabase) {
+      if (window._sb) {
         await syncSubmissionToSupabase(sub);
       }
 
@@ -2721,7 +2745,7 @@
       function buildBlock(questions, skillLabel) {
         let block = `\n========== ${skillLabel.toUpperCase()} ==========\n`;
         questions.forEach((q, i) => {
-          const studentAns = sub.answers[q.id] || '(no answer)';
+          const studentAns = (sub.answers[q.id] !== undefined && sub.answers[q.id] !== '') ? sub.answers[q.id] : '(no answer)';
           const feedback = sub.scores['_fb_' + q.id] || '';
           const qScore = sub.scores['_q_' + q.id];
 
@@ -2799,7 +2823,7 @@
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
         sub.emailSent = true;
         saveSubmissions();
-        if (supabase) await syncSubmissionToSupabase(sub);
+        if (window._sb) await syncSubmissionToSupabase(sub);
         statusEl.className = 'email-status email-ok';
         statusEl.textContent = '✓ Email sent successfully to ' + sub.email;
         const btnEl = document.getElementById(`btn-email-${idx}`);
