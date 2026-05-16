@@ -13,6 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
     onload="window._emailjsReady=true;try{emailjs.init(window.EMAILJS_PUBLIC_KEY||'');}catch(e){}"
     onerror="console.warn('EmailJS CDN failed – email sending disabled')"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
 
@@ -1780,6 +1781,16 @@
     const EMAILJS_TEMPLATE_ID = 'template_4hsgufg';  // from emailjs.com
     const EMAILJS_PUBLIC_KEY = 'vHDEW_X-VuWWnunCS';   // from emailjs.com
 
+    /* ── SUPABASE CONFIG ── */
+    const SUPABASE_URL = 'https://veywxpmdgqlwuusrjgnd.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_rzDUAsEgZ3B8XFYpeZxIJQ_GscKJhF-';
+    let supabase = null;
+    try {
+      if (typeof supabase === 'undefined' || !supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch (e) { console.warn('Supabase initialization failed:', e); }
+
     // EmailJS init — safe, won't throw if CDN failed
     window.EMAILJS_PUBLIC_KEY = EMAILJS_PUBLIC_KEY;
     try { if (window._emailjsReady && typeof emailjs !== 'undefined') emailjs.init(EMAILJS_PUBLIC_KEY); } catch (e) { }
@@ -1973,8 +1984,38 @@
     try { submissions = JSON.parse(localStorage.getItem('exam_submissions') || '[]'); } catch (e) { }
 
     function saveSubmissions() {
-      try { localStorage.setItem('exam_submissions', JSON.stringify(submissions)); } catch (e) {
-        console.warn('Could not save to localStorage. Data will be lost on refresh.');
+      // Keep localStorage for local redundancy/offline
+      try { localStorage.setItem('exam_submissions', JSON.stringify(submissions)); } catch (e) { }
+    }
+
+    async function syncSubmissionToSupabase(sub) {
+      if (!supabase) return;
+      try {
+        const payload = {
+          student_name: sub.name,
+          student_email: sub.email,
+          exam_date: sub.date,
+          answers: sub.answers,
+          selected_questions: sub.selectedQuestions,
+          scores: sub.scores,
+          open_pending: sub.openPending,
+          graded: sub.graded,
+          email_sent: sub.emailSent,
+          total_score: calcTotal(sub)
+        };
+
+        if (sub.db_id) {
+          // Update existing
+          await supabase.from('english_exam_submissions').update(payload).eq('id', sub.db_id);
+        } else {
+          // Insert new
+          const { data, error } = await supabase.from('english_exam_submissions').insert(payload).select();
+          if (error) throw error;
+          if (data && data[0]) sub.db_id = data[0].id; // store the UUID
+          saveSubmissions(); // update localStorage with the db_id
+        }
+      } catch (e) {
+        console.error('Error syncing to Supabase:', e);
       }
     }
 
@@ -2281,6 +2322,12 @@
       };
       submissions.push(submission);
       saveSubmissions();
+      
+      // Save to Supabase immediately
+      if (supabase) {
+        await syncSubmissionToSupabase(submission);
+      }
+
       clearActiveExamSession();
       showResults(submission);
       showScreen('screen-results');
@@ -2359,10 +2406,10 @@
     /* ═══════════════════════════════════════════ */
     /* ════════ TEACHER PANEL ════════════════════ */
     /* ═══════════════════════════════════════════ */
-    function teacherLogin() {
+    async function teacherLogin() {
       if (document.getElementById('teacher-pwd').value === TEACHER_PASSWORD) {
         showScreen('screen-teacher');
-        renderPanel();
+        await renderPanel();
       } else {
         try { showModal('Authentication Failed', 'Incorrect password.'); }
         catch (e) { alert('Incorrect password.'); }
@@ -2371,9 +2418,43 @@
 
     let currentOpenIdx = -1; // tracks which student is open in grading view
 
-    function renderPanel() {
-      try { submissions = JSON.parse(localStorage.getItem('exam_submissions') || '[]'); } catch (e) { }
+    async function renderPanel() {
       const body = document.getElementById('panel-body');
+      body.innerHTML = `<div class="no-students">Loading submissions from database...</div>`;
+
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('english_exam_submissions')
+            .select('*')
+            .order('created_at', { ascending: false });
+          
+          if (error) throw error;
+          
+          // Map DB records back to the local format
+          submissions = data.map(dbSub => ({
+            db_id: dbSub.id,
+            id: dbSub.id, // using UUID as local id too
+            name: dbSub.student_name,
+            email: dbSub.student_email,
+            date: dbSub.exam_date,
+            answers: dbSub.answers,
+            selectedQuestions: dbSub.selected_questions,
+            scores: dbSub.scores,
+            openPending: dbSub.open_pending,
+            graded: dbSub.graded,
+            emailSent: dbSub.email_sent
+          }));
+          saveSubmissions(); // Update local cache
+        } catch (e) {
+          console.error('Could not load from Supabase:', e);
+          // fallback to localStorage if DB fails
+          try { submissions = JSON.parse(localStorage.getItem('exam_submissions') || '[]'); } catch (err) {}
+        }
+      } else {
+        try { submissions = JSON.parse(localStorage.getItem('exam_submissions') || '[]'); } catch (e) { }
+      }
+
       if (!submissions.length) { body.innerHTML = `<div class="no-students">No submissions yet. Students who complete the exam will appear here.</div>`; return; }
 
       const total = submissions.length;
@@ -2590,6 +2671,11 @@
       sub.scores.writing = Math.min(20, writingTotal);
       sub.graded = true;
       saveSubmissions();
+      
+      // Sync update to Supabase
+      if (supabase) {
+        await syncSubmissionToSupabase(sub);
+      }
 
       // Update summary UI
       document.getElementById('ts-grammar').textContent = sub.scores.grammar;
@@ -2713,6 +2799,7 @@
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
         sub.emailSent = true;
         saveSubmissions();
+        if (supabase) await syncSubmissionToSupabase(sub);
         statusEl.className = 'email-status email-ok';
         statusEl.textContent = '✓ Email sent successfully to ' + sub.email;
         const btnEl = document.getElementById(`btn-email-${idx}`);
