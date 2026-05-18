@@ -1995,31 +1995,61 @@
     }
 
     async function syncSubmissionToSupabase(sub) {
-      if (!window._sb) return;
-      try {
-        const payload = {
-          student_name: sub.name,
-          student_email: sub.email,
-          exam_date: sub.date,
-          answers: sub.answers,
-          selected_questions: sub.selectedQuestions,
-          scores: sub.scores,
-          open_pending: sub.openPending,
-          graded: sub.graded,
-          email_sent: sub.emailSent,
-          total_score: calcTotal(sub)
-        };
+      const payload = {
+        student_name: sub.name,
+        student_email: sub.email,
+        exam_date: sub.date,
+        answers: sub.answers,
+        selected_questions: sub.selectedQuestions,
+        scores: sub.scores,
+        open_pending: sub.openPending,
+        graded: sub.graded,
+        email_sent: sub.emailSent,
+        total_score: calcTotal(sub)
+      };
 
-        if (sub.db_id) {
-          await window._sb.from('english_exam_submissions').update(payload).eq('id', sub.db_id);
-        } else {
-          const { data, error } = await window._sb.from('english_exam_submissions').insert(payload).select();
-          if (error) throw error;
-          if (data && data[0]) sub.db_id = data[0].id;
-          saveSubmissions();
+      let dbStatus = 'skipped';
+      let dbMessage = 'Supabase client not initialized or offline';
+
+      if (window._sb) {
+        try {
+          if (sub.db_id) {
+            const { error } = await window._sb.from('english_exam_submissions').update(payload).eq('id', sub.db_id);
+            if (error) throw error;
+            dbStatus = 'success (updated)';
+            dbMessage = 'Record updated successfully in Supabase.';
+          } else {
+            const { data, error } = await window._sb.from('english_exam_submissions').insert(payload).select();
+            if (error) throw error;
+            if (data && data[0]) sub.db_id = data[0].id;
+            saveSubmissions();
+            dbStatus = 'success (inserted)';
+            dbMessage = 'Record inserted successfully in Supabase.';
+          }
+        } catch (e) {
+          console.error('Sync error:', e);
+          dbStatus = 'error';
+          dbMessage = e.message || JSON.stringify(e);
         }
-      } catch (e) {
-        console.error('Sync error:', e);
+      }
+
+      // Log to TXT file via PHP
+      let readableLogStr = '';
+      try { readableLogStr = formatReadableLog(sub); } catch(err) { console.warn('Could not format readable log:', err); }
+
+      try {
+        await fetch('api_log.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            payload: payload,
+            readable_log: readableLogStr,
+            db_status: dbStatus,
+            db_message: dbMessage
+          })
+        });
+      } catch (logErr) {
+        console.error('Failed to save log to txt:', logErr);
       }
     }
 
@@ -2476,14 +2506,23 @@
         try { submissions = JSON.parse(localStorage.getItem('exam_submissions') || '[]'); } catch (e) { }
       }
 
-      if (!submissions.length) { body.innerHTML = `<div class="no-students">No submissions yet. Students who complete the exam will appear here.</div>`; return; }
+      if (!submissions.length) { 
+        body.innerHTML = `<div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+          <button class="btn btn-ghost" style="font-size:.8rem;padding:.45rem .9rem" onclick="recoverBackup()">♻️ Recover Backup</button>
+        </div><div class="no-students">No submissions yet. Students who complete the exam will appear here.</div>`; 
+        return; 
+      }
 
       const total = submissions.length;
       const graded = submissions.filter(s => s.graded).length;
 
       let html = `<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem">
         <span style="font-size:.83rem;color:var(--muted)">${total} submission(s) &nbsp;·&nbsp; ${graded} graded · click a row to grade</span>
-        <button class="btn btn-ghost" style="font-size:.8rem;padding:.45rem .9rem" onclick="renderPanel()">↺ Refresh</button>
+        <div>
+          <button class="btn btn-ghost" style="font-size:.8rem;padding:.45rem .9rem;margin-right:.5rem" onclick="recoverBackup()">♻️ Recover Backup</button>
+          <button class="btn btn-ghost" style="font-size:.8rem;padding:.45rem .9rem;margin-right:.5rem" onclick="window.open('exam_logs.txt', '_blank')">📄 View Logs</button>
+          <button class="btn btn-ghost" style="font-size:.8rem;padding:.45rem .9rem" onclick="renderPanel()">↺ Refresh</button>
+        </div>
       </div>`;
 
       // Responsive table — becomes cards on mobile via CSS
@@ -3255,6 +3294,112 @@
       // Navigated away
       if (ttsIsPlaying || ttsIsPaused) ttsStop();
     }, true);
+
+    function formatReadableLog(sub) {
+      let log = '';
+      
+      const findQuestion = (id) => {
+        for (let q of BANK.grammar) if (q.id === id) return q;
+        for (let r of BANK.reading) {
+          for (let q of r.questions) if (q.id === id) return q;
+        }
+        for (let q of BANK.writing) if (q.id === id) return q;
+        for (let l of BANK.listening) {
+          for (let q of l.questions) if (q.id === id) return q;
+        }
+        return null;
+      };
+
+      const appendSection = (title, questionIds) => {
+        if (!questionIds || questionIds.length === 0) return;
+        log += `\n--- ${title} ---\n`;
+        questionIds.forEach((id, i) => {
+          const q = findQuestion(id);
+          const studentAns = (sub.answers[id] !== undefined && sub.answers[id] !== '') ? sub.answers[id] : '(no answer)';
+          if (q) {
+            let qText = q.text || q.prompt || '';
+            let sAnsText = studentAns;
+            if (q.type === 'mcq' && studentAns !== '(no answer)' && q.opts && q.opts[studentAns] !== undefined) {
+              sAnsText = q.opts[studentAns];
+            }
+            log += `Q${i+1} [${q.id}]: ${qText}\n`;
+            log += `Response: ${sAnsText}\n\n`;
+          } else {
+            log += `Q [${id}]: Not found in bank\n`;
+            log += `Response: ${studentAns}\n\n`;
+          }
+        });
+      };
+
+      let readQs = [];
+      if (sub.selectedQuestions.reading) {
+        let r = BANK.reading.find(x => x.id === sub.selectedQuestions.reading);
+        if (r && r.questions) readQs = r.questions.map(x => x.id);
+      }
+      
+      let listQs = [];
+      if (sub.selectedQuestions.listening) {
+        let l = BANK.listening.find(x => x.id === sub.selectedQuestions.listening);
+        if (l && l.questions) listQs = l.questions.map(x => x.id);
+      }
+
+      appendSection('GRAMMAR', sub.selectedQuestions.grammar);
+      appendSection('LISTENING', listQs);
+      appendSection('READING', readQs);
+      appendSection('WRITING', sub.selectedQuestions.writing);
+
+      return log.trim();
+    }
+
+    async function recoverBackup() {
+      try {
+        const res = await fetch('exam_backup.jsonl');
+        if (!res.ok) throw new Error('No backup file found on server.');
+        const text = await res.text();
+        const lines = text.split('\\n').filter(l => l.trim().length > 0);
+        let recoveredCount = 0;
+
+        lines.forEach(line => {
+          try {
+            const parsed = JSON.parse(line);
+            
+            // Check if already exists
+            const exists = submissions.find(s => 
+              (s.email === parsed.student_email && s.date === parsed.exam_date) || 
+              (s.db_id && parsed.id && s.db_id === parsed.id)
+            );
+            
+            if (!exists) {
+              const sub = {
+                id: parsed.id || Date.now() + Math.random(),
+                name: parsed.student_name,
+                email: parsed.student_email,
+                date: parsed.exam_date,
+                answers: parsed.answers,
+                selectedQuestions: parsed.selected_questions,
+                scores: parsed.scores,
+                openPending: parsed.open_pending,
+                graded: parsed.graded,
+                emailSent: parsed.email_sent,
+                db_id: parsed.id
+              };
+              submissions.push(sub);
+              recoveredCount++;
+            }
+          } catch(e) {}
+        });
+
+        if (recoveredCount > 0) {
+          saveSubmissions();
+          renderPanel();
+          showModal('Recovery Successful', `${recoveredCount} exam(s) were successfully recovered from backup and added to the panel.`, 'alert');
+        } else {
+          showModal('Recovery', 'All backup exams are already loaded in the panel. No new exams to recover.', 'alert');
+        }
+      } catch (err) {
+        showModal('Error', 'Could not read backup file: ' + err.message, 'alert');
+      }
+    }
   </script>
 </body>
 

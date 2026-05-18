@@ -1,0 +1,176 @@
+======================================================================
+Date/Time: 2026-05-18 00:30:58
+Student: Isauro RR (isaurouts@gmail.com)
+Total Score: 29
+----------------------------------------------------------------------
+FULL EXAM PAYLOAD:
+{
+    "student_name": "Isauro RR",
+    "student_email": "isaurouts@gmail.com",
+    "exam_date": "17\/5\/2026, 6:30:56 p.m.",
+    "answers": {
+        "g27": 1,
+        "g8": 0,
+        "g7": "sdsds",
+        "g13": "dsdsd",
+        "g12": "dsd",
+        "g4": "dsdsd",
+        "g1": 2,
+        "l2a": 2,
+        "l2b": 2,
+        "l2c": "ffdfdf",
+        "r1a": 2,
+        "r1b": "fdfdf",
+        "r1c": 1,
+        "w3": "fdfdf",
+        "w2": "fdfdfd",
+        "g26": ""
+    },
+    "selected_questions": {
+        "grammar": [
+            "g27",
+            "g26",
+            "g8",
+            "g7",
+            "g13",
+            "g12",
+            "g4",
+            "g1"
+        ],
+        "reading": "r1",
+        "listening": "l2",
+        "writing": [
+            "w3",
+            "w2"
+        ]
+    },
+    "scores": {
+        "grammar": 5,
+        "reading": 0,
+        "listening": 4,
+        "writing": null,
+        "speaking": 20
+    },
+    "open_pending": [
+        {
+            "skill": "grammar",
+            "qid": "g26",
+            "max": 5
+        },
+        {
+            "skill": "grammar",
+            "qid": "g7",
+            "max": 5,
+            "note": "Fill-in — check manually if almost correct"
+        },
+        {
+            "skill": "grammar",
+            "qid": "g13",
+            "max": 5
+        },
+        {
+            "skill": "grammar",
+            "qid": "g12",
+            "max": 5,
+            "note": "Fill-in — check manually if almost correct"
+        },
+        {
+            "skill": "grammar",
+            "qid": "g4",
+            "max": 5
+        },
+        {
+            "skill": "reading",
+            "qid": "r1b",
+            "max": 3
+        },
+        {
+            "skill": "listening",
+            "qid": "l2c",
+            "max": 3
+        },
+        {
+            "skill": "writing",
+            "qid": "w3",
+            "max": 10
+        },
+        {
+            "skill": "writing",
+            "qid": "w2",
+            "max": 10
+        }
+    ],
+    "graded": false,
+    "email_sent": false,
+    "total_score": 29
+}
+----------------------------------------------------------------------
+SUPABASE INSERT STATUS: SUCCESS (INSERTED)
+SUPABASE MESSAGE/ERROR: "Record inserted successfully in Supabase."
+======================================================================
+
+======================================================================
+Date/Time: 2026-05-18 00:36:41
+Student: Pedro (isaurouts@gmail.com)
+Total Score: 36
+----------------------------------------------------------------------
+ANSWERS:
+--- GRAMMAR ---
+Q1 [g23]: Choose the correct future form: "Look at those dark clouds! It _____ rain."
+Response: is going to
+
+Q2 [g13]: Write 3 sentences about your week using "last", "yesterday", and "ago" — one for each expression.
+Response: eeeq
+
+Q3 [g25]: Complete with "will" or "going to":
+Response: ewew
+
+Q4 [g12]: Use the correct time expression (last / ago):
+Response: ewew
+
+Q5 [g9]: Rewrite in the simple past: "She takes the bus to school every day." Then explain why you used that verb form.
+Response: ewew
+
+Q6 [g1]: Choose the correct simple past form: "She _____ (finish) her homework before dinner."
+Response: was finishing
+
+Q7 [g14]: "_____ morning I was very tired." Which word fits best?
+Response: Yesterday
+
+Q8 [g16]: Complete using simple present or present progressive:
+Response: ewew
+
+
+--- LISTENING ---
+Q1 [l4a]: Where is Laura's family going on their trip?
+Response: To the mountains
+
+Q2 [l4b]: What did Laura's family do last year?
+Response: They went to the mountains.
+
+Q3 [l4c]: What are Laura and her brother each planning to do on the trip? Use future forms in your answer.
+Response: ewew
+
+
+--- READING ---
+Q1 [r2a]: How did María and her friends travel?
+Response: By train
+
+Q2 [r2b]: What happened to change their afternoon plans? How did they spend the afternoon instead? Answer in your own words.
+Response: ewew
+
+Q3 [r2c]: What is María planning for next year?
+Response: She is going to do the same trip.
+
+
+--- WRITING ---
+Q1 [w2]: Compare your daily routine (simple present) with what you are doing right now or this week (present progressive). Write 5–7 sentences using both tenses clearly.
+Response: ewew
+
+Q2 [w1]: Write a paragraph (5–7 sentences) about what you did last week. Include: at least two regular past verbs, two irregular past verbs, and one time expression (last / yesterday / ago).
+Response: ewew
+----------------------------------------------------------------------
+SUPABASE INSERT STATUS: SUCCESS (INSERTED)
+SUPABASE MESSAGE/ERROR: "Record inserted successfully in Supabase."
+======================================================================
+
