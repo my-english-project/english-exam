@@ -1,0 +1,132 @@
+======================================================================
+Date/Time: 2026-05-18 02:02:16
+Student: isauro (isaurouts@gmail.com)
+Total Score: 28
+----------------------------------------------------------------------
+ANSWERS:
+--- GRAMMAR ---
+Q1 [g9]: Rewrite in the simple past: "She takes the bus to school every day." Then explain why you used that verb form.
+Response: sdsd
+
+Q2 [g21]: Complete with present progressive for future:
+Response: dsd
+
+Q3 [g3]: Which sentence uses the simple past correctly?
+Response: I go to the market yesterday.
+
+Q4 [g23]: Choose the correct future form: "Look at those dark clouds! It _____ rain."
+Response: is going to
+
+Q5 [g16]: Complete using simple present or present progressive:
+Response: dsd
+
+Q6 [g12]: Use the correct time expression (last / ago):
+Response: ds
+
+Q7 [g14]: "_____ morning I was very tired." Which word fits best?
+Response: Last
+
+Q8 [g2]: Complete with the simple past:
+Response: dsd
+
+
+--- LISTENING ---
+Q1 [l6a]: What does Carlos usually do first every morning?
+Response: He has breakfast.
+
+Q2 [l6b]: Why did Carlos stay late at the office last night?
+Response: He missed his bus.
+
+Q3 [l6c]: How is Carlos's routine different today? Explain using present progressive and future tenses from the audio.
+Response: dsds
+
+
+--- READING ---
+Q1 [r3a]: When does David usually prepare his lessons?
+Response: Friday evening
+
+Q2 [r3b]: What two things is David planning for this Saturday? Use verb tenses from the text.
+Response: dsds
+
+Q3 [r3c]: How long ago did David attend a similar workshop?
+Response: Three years ago
+
+
+--- WRITING ---
+Q1 [w2]: Compare your daily routine (simple present) with what you are doing right now or this week (present progressive). Write 5–7 sentences using both tenses clearly.
+Response: dsds
+
+Q2 [w3]: Describe your plans for next month. Use "going to" for definite plans and "will" for spontaneous decisions or predictions. Write 5–7 sentences and explain why you chose each form for at least one sentence.
+Response: dsds
+----------------------------------------------------------------------
+SUPABASE INSERT STATUS: SUCCESS (INSERTED)
+SUPABASE MESSAGE/ERROR: "Record inserted successfully in Supabase."
+======================================================================
+
+======================================================================
+Date/Time: 2026-05-18 02:19:46
+Student: isauro jose (isaurouts@gmail.com)
+Total Score: 44
+----------------------------------------------------------------------
+ANSWERS:
+--- GRAMMAR ---
+Q1 [g3]: Which sentence uses the simple past correctly?
+Response: I went to the market yesterday.
+
+Q2 [g11]: Which time expression correctly completes: "I saw that movie _____ two weeks."
+Response: ago
+
+Q3 [g13]: Write 3 sentences about your week using "last", "yesterday", and "ago" — one for each expression.
+Response: sds
+
+Q4 [g14]: "_____ morning I was very tired." Which word fits best?
+Response: Yesterday
+
+Q5 [g25]: Complete with "will" or "going to":
+Response: ds
+
+Q6 [g21]: Complete with present progressive for future:
+Response: ds
+
+Q7 [g20]: "We are flying to Cancún next Friday." This sentence expresses:
+Response: Something happening right now
+
+Q8 [g6]: What is the simple past of "go"?
+Response: went
+
+
+--- LISTENING ---
+Q1 [l3a]: When does the speaker go to English class?
+Response: Tuesday and Thursday
+
+Q2 [l3b]: What topic is the class studying right now?
+Response: Reading comprehension
+
+Q3 [l3c]: How is the speaker preparing for the upcoming exam? Use information from the audio in your answer.
+Response: dsd
+
+
+--- READING ---
+Q1 [r3a]: When does David usually prepare his lessons?
+Response: Saturday morning
+
+Q2 [r3b]: What two things is David planning for this Saturday? Use verb tenses from the text.
+Response: dzd
+
+Q3 [r3c]: How long ago did David attend a similar workshop?
+Response: Two years ago
+
+
+--- WRITING ---
+Q1 [w4]: Imagine your friend asks: "What was your best day last year?" Write a response (5–7 sentences) describing that day. Use simple past, time expressions, and show emotion or opinion.
+Response: ewe
+
+Q2 [w5]: Read the paragraph and rewrite it correcting ALL grammar mistakes. Then list each error and explain why it is wrong.
+
+"Yesterday I go to the market with my mom. We buyed a lot of vegetables. After that, she is cooking soup and I help her. Last week she always makes soup on Fridays. Tomorrow I will to go to the store again."
+Response: ewe
+----------------------------------------------------------------------
+SUPABASE INSERT STATUS: SUCCESS (INSERTED)
+SUPABASE MESSAGE/ERROR: "Record inserted successfully in Supabase."
+======================================================================
+
